@@ -618,8 +618,13 @@
 ; false
 ; user=> (igual? 6 "6")
 ; false
-(defn igual?
-  "Verifica la igualdad entre dos elementos al estilo de Scheme (case-insensitive)"
+(defn igual? [a, b]
+  (
+  cond
+    (string? a) (println( = a b ) )
+    (string? b) (println( = a b ) )
+    :else (println( = (lower-case a) (lower-case b)))
+  )
 )
 
 ; user=> (fnc-append '( (1 2) (3) (4 5) (6 7)))
