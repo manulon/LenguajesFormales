@@ -551,6 +551,8 @@
 (defn verificar-parentesis
   "Cuenta los parentesis en una cadena, sumando 1 si `(`, restando 1 si `)`. Si el contador se hace negativo, para y retorna -1."
 )
+;https://replit.com/@manulon/SuperbBogusEngineer#main.clj
+
 
 ; user=> (actualizar-amb '(a 1 b 2 c 3) 'd 4)
 ; (a 1 b 2 c 3 d 4)
@@ -597,7 +599,7 @@
 ; user=> (proteger-bool-en-str "")
 ; ""
 (defn proteger-bool-en-str
-  "Cambia, en una cadena, #t por %t y #f por %f (y sus respectivas versiones en mayusculas), para poder aplicarle read-string."
+  (println (clojure.string/replace input #"#" "%"))
 )
 
 ; user=> (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)")))
