@@ -583,11 +583,9 @@
 ; user=> (error? (list (symbol ";WARNING:") 'mal 'hecho))
 ; true
 (defn error? [lista]
-  (println
-    (or 
-    (= (first lista) (symbol ";ERROR:")   )
-    (= (first lista) (symbol ";WARNING:") )
-    )
+  (or 
+  (= (first lista) (symbol ";ERROR:")   )
+  (= (first lista) (symbol ";WARNING:") )
   )
 )
 
@@ -623,9 +621,8 @@
 (defn igual? [a, b]
   (
   cond
-    (string? a) (println( = a b ) )
-    (string? b) (println( = a b ) )
-    :else (println( = (lower-case a) (lower-case b)))
+    (not (and (string? a) (string? b))) ( = a b )
+    :else ( = (lower-case a) (lower-case b))
   )
 )
 
