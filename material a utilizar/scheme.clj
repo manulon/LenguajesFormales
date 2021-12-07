@@ -596,16 +596,16 @@
 ; "(and (or %F %f %t %T) %T)"
 ; user=> (proteger-bool-en-str "")
 ; ""
-(defn proteger-bool-en-str
-  (println (clojure.string/replace input #"#" "%"))
+(defn proteger-bool-en-str [input]
+  (clojure.string/replace input #"#" "%")
 )
 
 ; user=> (restaurar-bool (read-string (proteger-bool-en-str "(and (or #F #f #t #T) #T)")))
 ; (and (or #F #f #t #T) #T)
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
-(defn restaurar-bool
-  (println (clojure.string/replace input #"%" "#"))
+(defn restaurar-bool [input]
+  (clojure.string/replace input #"%" "#")
 )
 
 ; user=> (igual? 'if 'IF)
@@ -623,7 +623,7 @@
   if (and (string? a) (string? b)) 
     ( = (lower-case a) (lower-case b)) (if (and (symbol? a) (symbol? b)) 
       ( = (lower-case (str a)) (lower-case (str b))) (if (and (int? a) (int? b)) 
-        ( = a b) false
+        ( = a b) f
       )
     )
   )
