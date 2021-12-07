@@ -548,10 +548,31 @@
 ; -1
 ; user=> (verificar-parentesis "(hola '(mundo) )")
 ; 0
-(defn verificar-parentesis
-  "Cuenta los parentesis en una cadena, sumando 1 si `(`, restando 1 si `)`. Si el contador se hace negativo, para y retorna -1."
+;; ----------cambiar-------------------
+(defn valor-parentesis [ch]
+  (
+    cond ( = ch \( ) 1
+    :else (cond ( = ch \) ) -1 :else 0)
+  )  
 )
-;https://replit.com/@manulon/SuperbBogusEngineer#main.clj
+
+(defn ver [ch, rest, cont]
+  (if (neg? (+ cont (valor-parentesis ch)))
+    -1
+    (if (= "" rest) 
+      (+ cont (valor-parentesis ch))
+      (ver (first rest) (subs rest 1) (+ cont (valor-parentesis ch)))
+    )
+  )
+)
+
+(defn verificar-parentesis [input]
+  (ver (first input) (subs input 1) 0)
+)
+
+
+
+
 
 
 ; user=> (actualizar-amb '(a 1 b 2 c 3) 'd 4)
