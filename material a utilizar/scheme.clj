@@ -620,9 +620,12 @@
 ; false
 (defn igual? [a, b]
   (
-  cond
-    (not (and (string? a) (string? b))) ( = a b )
-    :else ( = (lower-case a) (lower-case b))
+  if (and (string? a) (string? b)) 
+    ( = (lower-case a) (lower-case b)) (if (and (symbol? a) (symbol? b)) 
+      ( = (lower-case (str a)) (lower-case (str b))) (if (and (int? a) (int? b)) 
+        ( = a b) false
+      )
+    )
   )
 )
 
