@@ -533,10 +533,25 @@
 ; user=> (leer-entrada)
 ; 123
 ; "123"
-(defn leer-entrada
-  "Lee una cadena desde la terminal/consola. Si los parentesis no estan correctamente balanceados al presionar Enter/Intro,
-   se considera que la cadena ingresada es una subcadena y el ingreso continua. De lo contrario, se la devuelve completa."
-)
+
+(defn leer-entrada 
+  ([] 
+    (let [input(read-line)]
+    (if (= 0 (verificar-parentesis input)) 
+      (println input )
+      (leer-entrada input)
+    )
+    )
+  )
+  ([input-parcial]
+    (let [input(read-line)]
+    (if (= 0 (verificar-parentesis (str input-parcial input))) 
+      (str input-parcial input)
+      (leer-entrada input-parcial)
+    )
+    )
+  )
+) 
 
 ; user=> (verificar-parentesis "(hola 'mundo")
 ; 1
@@ -548,7 +563,7 @@
 ; -1
 ; user=> (verificar-parentesis "(hola '(mundo) )")
 ; 0
-;; ----------cambiar-------------------
+
 (defn valor-parentesis [ch]
   (
     cond ( = ch \( ) 1
@@ -569,11 +584,6 @@
 (defn verificar-parentesis [input]
   (ver (first input) (subs input 1) 0)
 )
-
-
-
-
-
 
 ; user=> (actualizar-amb '(a 1 b 2 c 3) 'd 4)
 ; (a 1 b 2 c 3 d 4)
