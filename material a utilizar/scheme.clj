@@ -664,11 +664,44 @@
 ; (1 2 3 4 5 6 7)
 ; user=> (fnc-append '( (1 2) 3 (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg 3)
-; user=> (fnc-append '( (1 2) A (4 5) (6 7)))
+; user=> (fnc-append '( (1 2) A H (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg A)
-(defn fnc-append
-  "Devuelve el resultado de fusionar listas."
+
+(defn verificar-tipo [arg]
+  (reduce *
+    (map
+    (fn [x] 
+      (if (= x true) 1 0)
+    )
+    (map list? arg)
+    )
+  )
 )
+
+(defn obtener-error [arg]
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
+      )
+      (map list? arg)
+    )
+    arg
+    )
+  )
+)
+
+(defn fnc-append [arg]
+  (if (= 1 (verificar-tipo arg) ) 
+    (reduce concat arg)
+    (reduce concat '(";ERROR: append: Wrong type in arg") (list (obtener-error arg)))
+  )
+)
+
 
 ; user=> (fnc-equal? ())
 ; #t
