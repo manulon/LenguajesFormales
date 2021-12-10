@@ -766,9 +766,45 @@
 ; (;ERROR: +: Wrong type in arg2 A)
 ; user=> (fnc-sumar '(3 4 A 6))
 ; (;ERROR: +: Wrong type in arg2 A)
-(defn fnc-sumar
-  "Suma los elementos de una lista."
+
+(defn verificar-tipo [arg]
+  (let [primer-valor (first arg)]
+  (map
+    (fn [x] 
+      (if (= (type primer-valor) (type x)) 1 0)
+    )
+    arg
+  )
+  )
 )
+
+(defn obtener-argumento-error [arg]
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
+      )
+      (map int? arg)
+    )
+    arg
+    )
+  )
+)
+
+;; FALTA LO DE NUMERO DE ARGUMENTO.
+
+(defn fnc-sumar [arg]
+  (if (= (count arg) (reduce + (verificar-tipo arg)))
+    (reduce + arg) 
+    (reduce concat '(";ERROR: +: Wrong type in arg") (list (obtener-argumento-error arg)))  
+  )
+)
+
+; (reduce concat '(";ERROR: +: Wrong type in arg ") (list (obtener-argumento-error arg)))
 
 ; user=> (fnc-restar ())
 ; (;ERROR: -: Wrong number of args given)
