@@ -888,7 +888,7 @@
 ; user=> (fnc-menor '(1 2 A 4))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-;; "Devuelve #t si los numeros de una lista estan en orden estrictamente creciente; si no, #f."
+;; falta el ()
 
 (defn verificar-tipo [arg]
   (let [primer-valor (first arg)]
@@ -913,7 +913,6 @@
   )
 )
 
-
 ; user=> (fnc-mayor ())
 ; #t
 ; user=> (fnc-mayor '(1))
@@ -935,10 +934,46 @@
 ; user=> (fnc-mayor '(3 2 A 1))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-;; (reverse (sort (fn [a b] (Integer/signum (- b a))) arg))
+;; falta el () y el error en argumento
 
-(defn fnc-mayor
-  "Devuelve #t si los numeros de una lista estan en orden estrictamente decreciente; si no, #f."
+(defn verificar-tipo [arg]
+  (let [primer-valor (first arg)]
+    (if (number? (first arg)) 
+      (map
+        (fn [x] 
+          (if (= (type primer-valor) (type x)) 1 0)
+        )
+        arg
+      )
+      (map (fn [x] 0) arg)
+    )
+  )
+)
+
+(defn obtener-argumento-error [arg]
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
+      )
+      (map int? arg)
+    )
+    arg
+    )
+  )
+)
+
+(defn fnc-mayor [arg]
+  (if (= (count arg) (reduce + (verificar-tipo arg)))
+    (let [lista-ideal (for [x (range (+ (- (first arg) (count arg)) 1) (+ (first arg) 1)) ] x )]
+      (if (= arg ()) "#t" (if (= arg (reverse lista-ideal)) "#t" "#f"))
+    )
+    (reduce concat '(";ERROR: <: Wrong type in arg") (list (obtener-argumento-error arg)))
+    )
 )
 
 ; user=> (fnc-mayor-o-igual ())
