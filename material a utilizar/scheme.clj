@@ -887,9 +887,32 @@
 ; (;ERROR: <: Wrong type in arg2 A)
 ; user=> (fnc-menor '(1 2 A 4))
 ; (;ERROR: <: Wrong type in arg2 A)
-(defn fnc-menor
-  "Devuelve #t si los numeros de una lista estan en orden estrictamente creciente; si no, #f."
+
+;; "Devuelve #t si los numeros de una lista estan en orden estrictamente creciente; si no, #f."
+
+(defn verificar-tipo [arg]
+  (let [primer-valor (first arg)]
+  (map
+    (fn [x] 
+      (if (= (type primer-valor) (type x)) 1 0)
+    )
+    arg
+  )
+  )
 )
+
+(defn fnc-menor [arg]
+  (let[lista-ideal (for [x (range (first arg) (+ (first arg) (count arg)))] x)]
+    (if (= (count arg) (reduce + (verificar-tipo arg)))
+      (if (= arg ()) 
+        "#t"
+        (if (= arg lista-ideal) "#t" "#f")
+      )
+      (reduce concat '(";ERROR: <: Wrong type in arg") (list (obtener-argumento-error arg)))
+    )
+  )
+)
+
 
 ; user=> (fnc-mayor ())
 ; #t
@@ -911,6 +934,9 @@
 ; (;ERROR: <: Wrong type in arg2 A)
 ; user=> (fnc-mayor '(3 2 A 1))
 ; (;ERROR: <: Wrong type in arg2 A)
+
+;; (reverse (sort (fn [a b] (Integer/signum (- b a))) arg))
+
 (defn fnc-mayor
   "Devuelve #t si los numeros de una lista estan en orden estrictamente decreciente; si no, #f."
 )
