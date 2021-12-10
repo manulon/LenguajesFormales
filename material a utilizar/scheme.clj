@@ -649,12 +649,13 @@
 ; false
 ; user=> (igual? 6 "6")
 ; false
+
 (defn igual? [a, b]
   (
   if (and (string? a) (string? b)) 
     ( = (lower-case a) (lower-case b)) (if (and (symbol? a) (symbol? b)) 
       ( = (lower-case (str a)) (lower-case (str b))) (if (and (int? a) (int? b)) 
-        ( = a b) f
+        ( = a b) false
       )
     )
   )
@@ -719,8 +720,20 @@
 ; #t
 ; user=> (fnc-equal? '(1 1 2 1))
 ; #f
-(defn fnc-equal?
-  "Compara elementos. Si son iguales, devuelve #t. Si no, #f."
+
+(defn verificar-igualdad [arg]
+  (let [primer-valor (first arg)]
+  (map
+    (fn [x] 
+      (if (igual? primer-valor x) 1 0)
+    )
+    arg
+  )
+  )
+)
+
+(defn fnc-equal? [arg]
+  (if (= (count arg) (reduce + (verificar-igualdad arg))) "#t" "#f" )
 )
 
 ; user=> (fnc-read ())
