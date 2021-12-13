@@ -1059,9 +1059,79 @@
 ; (;ERROR: <: Wrong type in arg2 A)
 ; user=> (fnc-mayor-o-igual '(3 2 A 1))
 ; (;ERROR: <: Wrong type in arg2 A)
-(defn fnc-mayor-o-igual
-  "Devuelve #t si los numeros de una lista estan en orden decreciente; si no, #f."
+
+(defn verificar-tipo [arg]
+  (let [primer-valor (first arg)]
+    (if (number? (first arg)) 
+      (map
+        (fn [x] 
+          (if (= (type primer-valor) (type x)) 1 0)
+        )
+        arg
+      )
+      (map (fn [x] 0) arg)
+    )
+  )
 )
+
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    1
+    2
+  )
+)
+
+(defn obtener-argumento-error [arg]
+  (first 
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
+      )
+      (map int? arg)
+    )
+    arg
+    )
+  )
+  )
+)
+
+(defn fnc-mayor-o-igual [arg]
+  (if (= arg ()) (symbol "#t")
+    (if (= (count arg) 1) (symbol "#t")
+      (if (= (count arg) (reduce + (verificar-tipo arg)))
+        (let [lista-valores (map 
+                              (fn[x]
+                                (if (or 
+                                      (= (first x) (second x))
+                                      (> (first x) (second x)) 
+                                    )
+                                  1 
+                                  0
+                                ) 
+                              )
+                              (partition 2 1 arg)
+                            )]
+          (if (= (count lista-valores) (reduce + lista-valores)) 
+            (symbol "#t")
+            (symbol "#f")  
+          )
+        ) 
+        (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
+                    (obtener-numero-error arg) 
+                    (symbol " ") 
+                    (obtener-argumento-error arg)
+                )
+        )
+      )
+    )
+  )
+)
+
 
 ; user=> (evaluar-escalar 32 '(x 6 y 11 z "hola"))
 ; (32 (x 6 y 11 z "hola"))
