@@ -602,8 +602,6 @@
 ; 3
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
-
-
 (defn buscar [arg1, arg2]
   (let [resultado (remove false?
                     (map
@@ -1170,9 +1168,20 @@
 ;; "Evalua una expresion escalar. Devuelve una lista con el resultado y un ambiente."
 
 (defn evaluar-escalar [arg1, arg2]
-  
-)
+  (if (string? arg1) 
+    (list (symbol (str \" arg1 \" (symbol " ") arg2))) 
+    (if (not (symbol? arg1)) 
+      (list (symbol (str (symbol (str arg1)) (symbol " ") arg2)))
+      (if (string? (buscar arg1 arg2))
+        (list (symbol (str \" (buscar arg1 arg2) \" (symbol " ") arg2))) 
+        (list (symbol (str (symbol (str (buscar arg1 arg2))) (symbol " ") arg2)))
+      )
+    )
+  )
+)  
 
+
+;; 
 
 
 ;; chekie segun el parametro que recibviia el define como primera cosa que tenia que hacer
