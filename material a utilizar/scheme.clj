@@ -649,7 +649,6 @@
 ; false
 ; user=> (igual? 6 "6")
 ; false
-
 (defn igual? [a, b]
   (
   if (and (string? a) (string? b)) 
@@ -665,9 +664,8 @@
 ; (1 2 3 4 5 6 7)
 ; user=> (fnc-append '( (1 2) 3 (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg 3)
-; user=> (fnc-append '( (1 2) A H (4 5) (6 7)))
+; user=> (fnc-append '( (1 2) A (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg A)
-
 (defn verificar-tipo [arg]
   (reduce *
     (map
@@ -779,6 +777,7 @@
 )
 
 (defn obtener-argumento-error [arg]
+  (first 
   (remove false?
     (map
     (fn[a,b]
@@ -793,18 +792,27 @@
     arg
     )
   )
+  )
 )
 
-;; FALTA LO DE NUMERO DE ARGUMENTO.
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    1
+    2
+  )
+)
 
 (defn fnc-sumar [arg]
   (if (= (count arg) (reduce + (verificar-tipo arg)))
     (reduce + arg) 
-    (reduce concat '(";ERROR: +: Wrong type in arg") (list (obtener-argumento-error arg)))  
-  )
+    (symbol (str  (symbol ";ERROR: +: Wrong type in arg") 
+                  (obtener-numero-error arg) 
+                  (symbol " ") 
+                  (obtener-argumento-error arg)
+            )
+    )
+  )  
 )
-
-; (reduce concat '(";ERROR: +: Wrong type in arg ") (list (obtener-argumento-error arg)))
 
 ; user=> (fnc-restar ())
 ; (;ERROR: -: Wrong number of args given)
@@ -835,6 +843,7 @@
 )
 
 (defn obtener-argumento-error [arg]
+  (first 
   (remove false?
     (map
     (fn[a,b]
@@ -849,20 +858,28 @@
     arg
     )
   )
+  )
 )
 
-;; FALTA LO DE NUMERO DE ARGUMENTO. Y LO DE ARITY BLABLABAL
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    1
+    2
+  )
+)
 
-(defn fnc-restar 
-  ([] '(";ERROR: -: Wrong number of args given") )
-  ([arg]
-    (if (= arg '()) '(";ERROR: -: Wrong number of args given"))
-      (if (= 1 (count arg)) (- 0 (first arg))
-        (if (= (count arg) (reduce + (verificar-tipo arg)))
-          (reduce - arg) 
-          (reduce concat '(";ERROR: -: Wrong type in arg") (list (obtener-argumento-error arg)))  
-        )
-      )
+(defn fnc-restar [arg]
+  (if (= arg '()) '(";ERROR: -: Wrong number of args given")
+    (if (= 1 (count arg)) (- 0 (first arg))
+      (if (= (count arg) (reduce + (verificar-tipo arg)))
+        (reduce - arg) 
+        (symbol (str  (symbol ";ERROR: -: Wrong type in arg") 
+                (obtener-numero-error arg) 
+                (symbol " ") 
+                (obtener-argumento-error arg)
+                )
+        )   
+      )  
     )
   )
 )
@@ -888,7 +905,6 @@
 ; user=> (fnc-menor '(1 2 A 4))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-;; falta el ()
 
 (defn verificar-tipo [arg]
   (let [primer-valor (first arg)]
@@ -901,14 +917,47 @@
   )
 )
 
-(defn fnc-menor [arg]
-  (let[lista-ideal (for [x (range (first arg) (+ (first arg) (count arg)))] x)]
-    (if (= (count arg) (reduce + (verificar-tipo arg)))
-      (if (= arg ()) 
-        "#t"
-        (if (= arg lista-ideal) "#t" "#f")
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    1
+    2
+  )
+)
+
+(defn obtener-argumento-error [arg]
+  (first 
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
       )
-      (reduce concat '(";ERROR: <: Wrong type in arg") (list (obtener-argumento-error arg)))
+      (map int? arg)
+    )
+    arg
+    )
+  )
+  )
+)
+
+(defn fnc-menor [arg]
+  (if (= arg ()) (symbol "#t") 
+    (if (= (count arg) (reduce + (verificar-tipo arg)))
+      (let[lista-ideal (for [x (range (first arg) (+ (first arg) (count arg)))] x)]
+        (if (= arg ()) 
+          (symbol "#t")
+          (if (= arg lista-ideal) (symbol "#t") (symbol "#f"))
+        )
+      )
+      (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
+                  (obtener-numero-error arg) 
+                  (symbol " ") 
+                  (obtener-argumento-error arg)
+              )
+      )
     )
   )
 )
@@ -934,8 +983,6 @@
 ; user=> (fnc-mayor '(3 2 A 1))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-;; falta el () y el error en argumento
-
 (defn verificar-tipo [arg]
   (let [primer-valor (first arg)]
     (if (number? (first arg)) 
@@ -950,7 +997,15 @@
   )
 )
 
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    1
+    2
+  )
+)
+
 (defn obtener-argumento-error [arg]
+  (first 
   (remove false?
     (map
     (fn[a,b]
@@ -965,15 +1020,23 @@
     arg
     )
   )
+  )
 )
 
 (defn fnc-mayor [arg]
-  (if (= (count arg) (reduce + (verificar-tipo arg)))
-    (let [lista-ideal (for [x (range (+ (- (first arg) (count arg)) 1) (+ (first arg) 1)) ] x )]
-      (if (= arg ()) "#t" (if (= arg (reverse lista-ideal)) "#t" "#f"))
-    )
-    (reduce concat '(";ERROR: <: Wrong type in arg") (list (obtener-argumento-error arg)))
-    )
+  (if (= arg ()) (symbol "#t")
+    (if (= (count arg) (reduce + (verificar-tipo arg)))
+      (let [lista-ideal (for [x (range (+ (- (first arg) (count arg)) 1) (+ (first arg) 1)) ] x )]
+        (if (= arg ()) (symbol "#t") (if (= arg (reverse lista-ideal)) (symbol "#t") (symbol "#f")))
+      )
+      (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
+                  (obtener-numero-error arg) 
+                  (symbol " ") 
+                  (obtener-argumento-error arg)
+              )
+      )
+      )
+  )
 )
 
 ; user=> (fnc-mayor-o-igual ())
