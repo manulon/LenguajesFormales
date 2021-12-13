@@ -593,9 +593,17 @@
 ; (a 1 b 2 c 3)
 ; user=> (actualizar-amb () 'b 7)
 ; (b 7)
-(defn actualizar-amb
-  "Devuelve un ambiente actualizado con una clave (nombre de la variable o funcion) y su valor. 
-  Si el valor es un error, el ambiente no se modifica. De lo contrario, se le carga o reemplaza la nueva informacion."
+(defn actualizar-amb [arg1, arg2, arg3]
+  (if (= (error? arg3) true) 
+    arg1
+    (if (= (list (symbol (str (symbol ";ERROR: unbound variable: ") arg2))) (buscar arg2 arg1))
+      (concat arg1 (list arg2) (list arg3))
+      (reduce
+        concat
+        (map (fn[x] (if (= (first x) arg2) (concat (list arg2) (list arg3)) x)) (partition 2 arg1))
+      )
+    )
+  )
 )
 
 ; user=> (buscar 'c '(a 1 b 2 c 3 d 4 e 5))
@@ -629,9 +637,12 @@
 ; user=> (error? (list (symbol ";WARNING:") 'mal 'hecho))
 ; true
 (defn error? [lista]
-  (or 
-  (= (first lista) (symbol ";ERROR:")   )
-  (= (first lista) (symbol ";WARNING:") )
+  (if (list? lista)
+    (or 
+    (= (first lista) (symbol ";ERROR:")   )
+    (= (first lista) (symbol ";WARNING:") )
+    )
+    false
   )
 )
 
@@ -1164,9 +1175,6 @@
 ; ("hola" (x 6 y 11 z "hola"))
 ; user=> (evaluar-escalar 'n '(x 6 y 11 z "hola"))
 ; ((;ERROR: unbound variable: n) (x 6 y 11 z "hola"))
-
-;; "Evalua una expresion escalar. Devuelve una lista con el resultado y un ambiente."
-
 (defn evaluar-escalar [arg1, arg2]
   (if (string? arg1) 
     (list (symbol (str \" arg1 \" (symbol " ") arg2))) 
@@ -1179,10 +1187,6 @@
     )
   )
 )  
-
-
-;; 
-
 
 ;; chekie segun el parametro que recibviia el define como primera cosa que tenia que hacer
 ;;   si reicibo simbolo agarro y ago un actaulizar ambiente con el ambiente ese simbolo y el valor
