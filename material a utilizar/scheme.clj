@@ -602,10 +602,27 @@
 ; 3
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
-(defn buscar
-  "Busca una clave en un ambiente (una lista con claves en las posiciones impares [1, 3, 5...] y valores en las pares [2, 4, 6...]
-   y devuelve el valor asociado. Devuelve un error :unbound-variable si no la encuentra."
+
+
+(defn buscar [arg1, arg2]
+  (let [resultado (remove false?
+                    (map
+                      (fn [x]
+                        (if (= (first x) arg1)
+                          (second x)
+                          false
+                        )
+                      )   
+                      (partition 2 arg2)
+                    )
+                  )]
+    (if (= (first resultado) nil) 
+      (list (symbol (str (symbol ";ERROR: unbound variable: ") arg1)))
+      (first resultado)
+    )  
+  )
 )
+
 
 ; user=> (error? (list (symbol ";ERROR:") 'mal 'hecho))
 ; true
@@ -1149,9 +1166,21 @@
 ; ("hola" (x 6 y 11 z "hola"))
 ; user=> (evaluar-escalar 'n '(x 6 y 11 z "hola"))
 ; ((;ERROR: unbound variable: n) (x 6 y 11 z "hola"))
-(defn evaluar-escalar
-  "Evalua una expresion escalar. Devuelve una lista con el resultado y un ambiente."
+
+;; "Evalua una expresion escalar. Devuelve una lista con el resultado y un ambiente."
+
+(defn evaluar-escalar [arg1, arg2]
+  
 )
+
+
+
+;; chekie segun el parametro que recibviia el define como primera cosa que tenia que hacer
+;;   si reicibo simbolo agarro y ago un actaulizar ambiente con el ambiente ese simbolo y el valor
+;;   para el lambda, si es una lista lo que hago es actualizar el ambiente con la f con la primera 
+;;   cosa de la lista que recibe como parametro y el crear lambda apra ccrearla y ponerla en el ambiente
+;;  viste q actu abmb recibe  clave y valor? clave es f y valor es expresion
+
 
 ; user=> (evaluar-define '(define x 2) '(x 1))
 ; (#<unspecified> (x 2))
