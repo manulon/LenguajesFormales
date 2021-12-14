@@ -1271,8 +1271,21 @@
 ; (5 (#f #f #t #t))
 ; user=> (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
-(defn evaluar-or
-  "Evalua una expresion `or`.  Devuelve una lista con el resultado y un ambiente."
+(defn obtener-resultado-or [arg]
+  (let [lista-valores (map (fn [x] (if (and (not (= x (symbol "#f"))) (not (= x (symbol "or")))) x 0 )) arg ),
+        total-lista-valores (map (fn [x] (if (and (not (= x (symbol "#f"))) (not (= x (symbol "or")))) 1 0 )) arg )]
+    (if (= 0 (reduce + total-lista-valores))
+      (symbol "#f")
+      (first (remove (fn [x] (= x 0)) lista-valores))
+    )
+  )
+)
+
+(defn evaluar-or [arg1, arg2]
+  (if (= (count arg1) 1) 
+    (actualizar-amb '() (symbol "#f") arg2)
+    (actualizar-amb '() (obtener-resultado-or arg1) arg2)
+  )
 )
 
 ; user=> (evaluar-set! '(set! x 1) '(x 0))
