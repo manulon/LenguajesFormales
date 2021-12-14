@@ -1256,8 +1256,78 @@
 ; ((;ERROR: if: missing or extra expression (if)) (n 7))
 ; user=> (evaluar-if '(if 1) '(n 7))
 ; ((;ERROR: if: missing or extra expression (if 1)) (n 7))
-(defn evaluar-if
-  "Evalua una expresion `if`. Devuelve una lista con el resultado y un ambiente eventualmente modificado."
+
+(defn buscar-en-ambiente [arg1, arg2]
+  (let [lista-valores (map (fn [x]  (if (= x (symbol "if")) 
+                                      0
+                                      (if (=  (buscar x arg2) 
+                                              (list (symbol (str (symbol ";ERROR: unbound variable: ") x)))
+                                          )
+                                          0
+                                          x
+                                      )
+                                    )
+                            )
+                            arg1
+                        ),
+      total-lista-valores (map (fn [x]  (if (= x (symbol "if")) 
+                                      0
+                                      (if (=  (buscar x arg2) 
+                                              (list (symbol (str (symbol ";ERROR: unbound variable: ") x)))
+                                          )
+                                          0
+                                          1
+                                      )
+                                    )
+                            )
+                            arg1
+                          )]
+    (if (= 0 (reduce + total-lista-valores))
+      (symbol "value-not-found")
+      (if (and (< 1 (reduce + total-lista-valores)) (= (- (count arg1) 1) (reduce + total-lista-valores))) 
+        (symbol "unspecified")
+        (if (and (< 1 (reduce + total-lista-valores)) (> (+ (count arg1) 1) (reduce + total-lista-valores))) 
+          (symbol "two-coincidences")
+          (first (remove (fn [x] (= x 0)) lista-valores))
+        )
+      )
+    )
+  ) 
+)
+
+(defn aplicar-set!? [arg1]
+  (let [lista-set! (map (fn [x] (if (list? x) (if (= (first x) (symbol "set!")) 1 0 ) 0)) arg1)]
+    (if (= 0 (reduce + lista-set!))
+      false
+      true 
+    )
+  )
+)
+
+(defn aplicar-set! [arg1]
+  (let [lista-set! (map (fn [x] (if (list? x) (if (= (first x) (symbol "set!")) x 0 ) 0)) arg1)]
+    (first (remove (fn [x] (= x 0)) lista-set!))
+  )
+)
+
+(defn evaluar-if [arg1, arg2]
+  (if (not (> (count arg1) 2)) 
+    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: if: missing or extra expression ") arg1 ))) arg2)    
+    (if (or (= (buscar-en-ambiente arg1 arg2) (symbol "value-not-found")) 
+            (= (buscar-en-ambiente arg1 arg2) (symbol "two-coincidences")))
+        (if (= true (aplicar-set!? arg1))
+          (actualizar-amb '() (symbol "#<unspecified>") (second (evaluar-set! (aplicar-set! arg1) arg2)))    
+          (actualizar-amb '() (nth arg1 (- (count arg1) 1)) arg2)
+        )
+        (if (= (buscar-en-ambiente arg1 arg2) (symbol "unspecified"))
+           (if (= true (aplicar-set!? arg1))
+             (actualizar-amb '() (symbol "#<unspecified>") (second (evaluar-set! (aplicar-set! arg1) arg2)))
+             (actualizar-amb '() (symbol "#<unspecified>") arg2)
+           )
+          (actualizar-amb '() (buscar (buscar-en-ambiente arg1 arg2) arg2) arg2)
+        )
+    )
+  )
 )
 
 ; user=> (evaluar-or (list 'or) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
@@ -1304,7 +1374,7 @@
       (actualizar-amb '() (buscar (second arg1) arg2) arg2)
       (if (not (= (count arg1) 3)) 
         (actualizar-amb '() (list (symbol (str (symbol ";ERROR: set!: missing or extra expression ") arg1 ))) arg2)
-        (actualizar-amb '() (symbol "#<unspecified>") (concat (list (second arg1) (nth arg1 2))))
+        (actualizar-amb '() (symbol "#<unspecified>") (actualizar-amb arg2 (second arg1) (nth arg1 2)))
       )
     )
   )
