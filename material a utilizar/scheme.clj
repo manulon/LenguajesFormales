@@ -1188,32 +1188,58 @@
   )
 )  
 
-;; chekie segun el parametro que recibviia el define como primera cosa que tenia que hacer
-;;   si reicibo simbolo agarro y ago un actaulizar ambiente con el ambiente ese simbolo y el valor
-;;   para el lambda, si es una lista lo que hago es actualizar el ambiente con la f con la primera 
-;;   cosa de la lista que recibe como parametro y el crear lambda apra ccrearla y ponerla en el ambiente
-;;  viste q actu abmb recibe  clave y valor? clave es f y valor es expresion
-
-
 ; user=> (evaluar-define '(define x 2) '(x 1))
 ; (#<unspecified> (x 2))
+
 ; user=> (evaluar-define '(define (f x) (+ x 1)) '(x 1))
 ; (#<unspecified> (x 1 f (lambda (x) (+ x 1))))
+
 ; user=> (evaluar-define '(define) '(x 1))
 ; ((;ERROR: define: missing or extra expression (define)) (x 1))
+
 ; user=> (evaluar-define '(define x) '(x 1))
 ; ((;ERROR: define: missing or extra expression (define x)) (x 1))
+
 ; user=> (evaluar-define '(define x 2 3) '(x 1))
 ; ((;ERROR: define: missing or extra expression (define x 2 3)) (x 1))
+
 ; user=> (evaluar-define '(define ()) '(x 1))
 ; ((;ERROR: define: missing or extra expression (define ())) (x 1))
+
 ; user=> (evaluar-define '(define () 2) '(x 1))
 ; ((;ERROR: define: bad variable (define () 2)) (x 1))
+
 ; user=> (evaluar-define '(define 2 x) '(x 1))
 ; ((;ERROR: define: bad variable (define 2 x)) (x 1))
-(defn evaluar-define
-  "Evalua una expresion `define`. Devuelve una lista con el resultado y un ambiente actualizado con la definicion."
+(defn obtener-lambda [arg1, arg2]
+  (if (symbol? (nth arg1 1))
+    (concat (list (nth arg1 1)) (list (nth arg1 2)))    
+    (concat 
+      (actualizar-amb 
+        (actualizar-amb '() (first arg2) (second arg2) )
+          (symbol "f")
+          (concat 
+              (actualizar-amb '() 
+              (symbol "lambda") 
+              (list (second (second arg1))) 
+              )
+              (list (nth arg1 2))   
+          )
+      )
+    )
+  )
+)      
+      
+(defn evaluar-define [arg1, arg2]
+  (if (not (= (count arg1) 3))
+    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: missing or extra expression ") arg1 ))) arg2)
+    (if (or (= (nth arg1 1) ()) (int? (nth arg1 1) ))
+      (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: bad variable ") arg1 ))) arg2)
+      (actualizar-amb '() (symbol "#<unspecified>") (obtener-lambda arg1 arg2))
+    )
+  )  
 )
+
 
 ; user=> (evaluar-if '(if 1 2) '(n 7))
 ; (2 (n 7))
