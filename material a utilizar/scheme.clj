@@ -114,14 +114,23 @@
 
 
 (defn evaluar
+  (defn evaluar
   "Evalua una expresion `expre` en un ambiente. Devuelve un lista con un valor resultante y un ambiente."
   [expre amb]
   (if (and (seq? expre) (or (empty? expre) (error? expre))) ; si `expre` es () o error, devolverla intacta
       (list expre amb)                                      ; de lo contrario, evaluarla
       (cond
-        (not (seq? expre))             (evaluar-escalar expre amb)
-
+        (not (seq?  "expreescalar" expre))         (evaluar-escalar expre amb)
         (igual? (first expre) 'define) (evaluar-define expre amb)
+        (igual? (first expre) 'if) (evaluar-if expre amb)
+        (igual? (first expre) 'or) (evaluar-or expre amb)
+        (igual? (first expre) 'set!) (evaluar-set! expre amb)
+        (igual? (first expre) 'cond) (evaluar-cond expre amb)
+        (igual? (first expre) 'eval) (evaluar-eval expre amb)
+        (igual? (first expre) 'exit) (evaluar-exit expre amb)
+        (igual? (first expre) 'load) (evaluar-load expre amb)
+        (igual? (first expre) 'quote) (evaluar-quote expre amb)
+        (igual? (first expre) 'lambda)) (evaluar-lambda expre amb)
 
          ;
          ;
@@ -175,28 +184,42 @@
           ))
 
 
-(defn aplicar-funcion-primitiva
-  "Aplica una funcion primitiva a una `lae` (lista de argumentos evaluados)."
-  [fnc lae amb]
+(defn aplicar-funcion-primitiva [fnc lae amb]
   (cond
     (= fnc '<)            (fnc-menor lae)
-
+    (= fnc '>)            (fnc-mayor lae)
+    (= fnc '>=)           (fnc-mayor-o-igual lae)
+    (= fnc '+)            (fnc-sumar lae)
+    (= fnc '-)            (fnc-restar lae)
     ;
     ;
     ; Si la funcion primitiva esta identificada por un simbolo, puede determinarse mas rapido que hacer con ella
     ;
     ;
-
-
     (igual? fnc 'append)  (fnc-append lae)
-
+    (igual? fnc 'car)  (fnc-car lae)
+    (igual? fnc 'cdr)  (fnc-cdr lae)
+    (igual? fnc 'env)  (fnc-env lae amb)
+    (igual? fnc 'not)  (fnc-not lae)
+    (igual? fnc 'cons)  (fnc-cons lae)
+    (igual? fnc 'list)  (fnc-list lae)
+    (igual? fnc 'list?)  (fnc-list? lae)
+    (igual? fnc 'read)  (fnc-read lae)
+    (igual? fnc 'null?)  (fnc-null? lae)
+    (igual? fnc 'equal?)  (fnc-equal? lae)
+    (igual? fnc 'length)  (fnc-length lae)
+    (igual? fnc 'display)  (fnc-display lae)
+    (igual? fnc 'newline)  (fnc-newline lae)
+    (igual? fnc 'reverse)  (fnc-reverse lae)
     ;
     ;
     ; Si la funcion primitiva esta identificada mediante una palabra reservada, debe ignorarse la distincion entre mayusculas y minusculas 
     ;
     ;
 
-    :else (generar-mensaje-error :wrong-type-apply fnc)))
+    :else (generar-mensaje-error :wrong-type-apply fnc)
+  )
+)
 
 
 (defn fnc-car
