@@ -629,7 +629,6 @@
   )
 )
 
-
 ; user=> (error? (list (symbol ";ERROR:") 'mal 'hecho))
 ; true
 ; user=> (error? (list 'mal 'hecho))
@@ -1290,7 +1289,7 @@
 
 ; user=> (evaluar-set! '(set! x 1) '(x 0))
 ; (#<unspecified> (x 1))
-; user=> (evaluar-set! '(set! x 1) '())
+; (evaluar-set! '(set! x 1) '())
 ; ((;ERROR: unbound variable: x) ())
 ; user=> (evaluar-set! '(set! x) '(x 0))
 ; ((;ERROR: set!: missing or extra expression (set! x)) (x 0))
@@ -1298,9 +1297,17 @@
 ; ((;ERROR: set!: missing or extra expression (set! x 1 2)) (x 0))
 ; user=> (evaluar-set! '(set! 1 2) '(x 0))
 ; ((;ERROR: set!: bad variable 1) (x 0))
-(defn evaluar-set!
-  "Evalua una expresion `set!`. Devuelve una lista con el resultado y un ambiente actualizado con la redefinicion."
+(defn evaluar-set! [arg1, arg2]
+  (if (not (symbol? (second arg1)))
+    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: bad variable ") arg1 ))) arg2)
+    (if (= (buscar (second arg1) arg2) (list (symbol (str (symbol ";ERROR: unbound variable: ") (second arg1)))))
+      (actualizar-amb '() (buscar (second arg1) arg2) arg2)
+      (if (not (= (count arg1) 3)) 
+        (actualizar-amb '() (list (symbol (str (symbol ";ERROR: set!: missing or extra expression ") arg1 ))) arg2)
+        (actualizar-amb '() (symbol "#<unspecified>") (concat (list (second arg1) (nth arg1 2))))
+      )
+    )
+  )
 )
-
 
 ; Al terminar de cargar el archivo en el REPL de Clojure, se debe devolver true.
