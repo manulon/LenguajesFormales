@@ -103,14 +103,14 @@
      (let [renglon (leer-entrada)]                       ; READ
           (if (= renglon "")
               (repl amb)
-              (let [str-corregida (proteger-bool-en-str renglon),
-                    cod-en-str (read-string str-corregida),
-                    cod-corregido (restaurar-bool cod-en-str),
+              (let [str-corregida (spy "aca sale" (proteger-bool-en-str renglon)),
+                    cod-en-str (spy "aca sale" (read-string str-corregida)),
+                    cod-corregido (spy "aca sale" (restaurar-bool cod-en-str)),
                     res (evaluar cod-corregido amb)]     ; EVAL
                     (if (nil? (second res))              ;   Si el ambiente del resultado es `nil`, es porque se ha evaluado (exit)
                         'Goodbye!                        ;   En tal caso, sale del REPL devolviendo Goodbye!.
-                        (do (imprimir (first res))       ; PRINT
-                            (repl (second res)))))))     ; LOOP (Se llama a si misma con el nuevo ambiente)
+                        (do (imprimir (first res)       ; PRINT
+                            (repl (second res))))))))     ; LOOP (Se llama a si misma con el nuevo ambiente)
      (catch Exception e                                  ; PRINT (si se lanza una excepcion)
                    (imprimir (generar-mensaje-error :error (get (Throwable->map e) :cause)))
                    (repl amb)))))                        ; LOOP (Se llama a si misma con el ambiente intacto)
@@ -149,7 +149,7 @@
 (defn aplicar
   "Aplica la funcion `fnc` a la lista de argumentos `lae` evaluados en el ambiente dado."
   ([fnc lae amb]
-   (aplicar (revisar-fnc fnc) (revisar-lae lae) fnc lae amb))
+    (aplicar (revisar-fnc fnc) (revisar-lae lae) fnc lae amb))
   ([resu1 resu2 fnc lae amb]
    (cond
      (error? resu1) (list resu1 amb)
@@ -172,7 +172,6 @@
    (let [nuevos (reduce concat (map list (second fnc) (map #(list 'quote %) lae))),
          mapa (into (hash-map) (vec (map vec (partition 2 nuevos))))]
         (evaluar (postwalk-replace mapa (first (nnext fnc))) amb)))
-
 
 (defn aplicar-lambda-multiple
   "Evalua una funcion lambda `fnc` cuyo cuerpo contiene varias partes."
@@ -657,16 +656,23 @@
 ; false
 ; user=> (error? (list (symbol ";WARNING:") 'mal 'hecho))
 ; true
+;;(defn error? [lista]
+;;  (if (list? lista)
+;;    (or 
+;;    (= (first lista) (symbol ";ERROR:")   )
+;;    (= (first lista) (symbol ";WARNING:") )
+;;    )
+;;    false
+;;  )
+;;)
+
 (defn error? [lista]
-  (if (list? lista)
-    (or 
-    (= (first lista) (symbol ";ERROR:")   )
-    (= (first lista) (symbol ";WARNING:") )
+  (if (not (seq? lista)) false
+    (if  (= (first lista) (symbol ";ERROR:")) true 
+      (if (= (first lista) (symbol ";WARNING:")) true false) 
     )
-    false
   )
 )
-
 
 ; user=> (proteger-bool-en-str "(or #F #f #t #T)")
 ; "(or %F %f %t %T)"
@@ -682,8 +688,23 @@
 ; (and (or #F #f #t #T) #T)
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
-(defn restaurar-bool [input]
-  (clojure.string/replace input #"%" "#")
+(defn modificar-bool [simbolo]
+  (cond
+    (= simbolo '%F) (symbol "#F")
+    (= simbolo '%f) (symbol "#f")
+    (= simbolo '%T) (symbol "#T")
+    (= simbolo '%t) (symbol "#t")
+    :else simbolo
+  )
+)
+
+(defn restaurar-bool [lista]
+  (map (fn [x] (
+    cond
+    (symbol? x) (modificar-bool x)
+    (seq? x) (restaurar-bool x)
+    :else x
+  )) lista)
 )
 
 ; user=> (igual? 'if 'IF)
