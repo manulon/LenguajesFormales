@@ -1,3 +1,6 @@
+(ns interprete-scheme.core
+  (:gen-class))
+
 (require '[clojure.string :as st :refer [blank? starts-with? ends-with? lower-case]]
          '[clojure.java.io :refer [delete-file reader]]
          '[clojure.walk :refer [postwalk postwalk-replace]])
@@ -61,6 +64,7 @@
 (declare revisar-fnc)
 (declare revisar-lae)
 (declare leer-entrada)
+(declare leer-entrada-wrapper)
 (declare actualizar-amb)
 (declare restaurar-bool)
 (declare generar-nombre-arch)
@@ -74,6 +78,14 @@
 (declare evaluar-clausulas-de-cond)
 (declare evaluar-secuencia-en-cond)
 
+(declare verificar-parentesis-wrapper)
+(declare efectuar-actualizacion-amb)
+(declare equals)
+(declare menor)
+(declare mayor)
+(declare crear-lambda)
+(declare crear-lambda2)
+(declare modificar-bool)
 
 ; REPL (read–eval–print loop).
 ; Aridad 0: Muestra mensaje de bienvenida y se llama recursivamente con el ambiente inicial.
@@ -114,13 +126,12 @@
 
 
 (defn evaluar
-  (defn evaluar
   "Evalua una expresion `expre` en un ambiente. Devuelve un lista con un valor resultante y un ambiente."
   [expre amb]
   (if (and (seq? expre) (or (empty? expre) (error? expre))) ; si `expre` es () o error, devolverla intacta
       (list expre amb)                                      ; de lo contrario, evaluarla
       (cond
-        (not (seq?  "expreescalar" expre))         (evaluar-escalar expre amb)
+        (not (seq? expre))             (evaluar-escalar expre amb)
         (igual? (first expre) 'define) (evaluar-define expre amb)
         (igual? (first expre) 'if) (evaluar-if expre amb)
         (igual? (first expre) 'or) (evaluar-or expre amb)
@@ -130,7 +141,7 @@
         (igual? (first expre) 'exit) (evaluar-exit expre amb)
         (igual? (first expre) 'load) (evaluar-load expre amb)
         (igual? (first expre) 'quote) (evaluar-quote expre amb)
-        (igual? (first expre) 'lambda)) (evaluar-lambda expre amb)
+        (igual? (first expre) 'lambda) (evaluar-lambda expre amb)
 
          ;
          ;
@@ -167,12 +178,19 @@
     :else (aplicar-lambda-multiple fnc lae amb)))
 
 
- (defn aplicar-lambda-simple
-   "Evalua una funcion lambda `fnc` con un cuerpo simple."
-   [fnc lae amb]
-   (let [nuevos (reduce concat (map list (second fnc) (map #(list 'quote %) lae))),
-         mapa (into (hash-map) (vec (map vec (partition 2 nuevos))))]
-        (evaluar (postwalk-replace mapa (first (nnext fnc))) amb)))
+(defn aplicar-lambda-simple
+  "Evalua un lambda `fnc` con un cuerpo simple"
+  [fnc lae amb]
+  (let [lae-con-quotes (map #(if (or (number? %) (string? %) (and (seq? %) (igual? (first %) 'lambda)))
+                                 %
+                                 (list 'quote %)) lae),
+        nuevos-pares (reduce concat (map list (second fnc) lae-con-quotes)),
+        mapa (into (hash-map) (vec (map vec (partition 2 nuevos-pares)))),
+        cuerpo (first (nnext fnc)),
+        expre (if (and (seq? cuerpo) (seq? (first cuerpo)) (igual? (ffirst cuerpo) 'lambda))
+                  (cons (first cuerpo) (postwalk-replace mapa (rest cuerpo)))
+                  (postwalk-replace mapa cuerpo))]
+        (evaluar expre amb)))
 
 
 (defn aplicar-lambda-multiple
@@ -180,11 +198,12 @@
   [fnc lae amb]
   (aplicar (cons 'lambda (cons (second fnc) (next (nnext fnc))))
            lae
-           (second (aplicar-lambda-simple fnc lae amb))
-          ))
+           (second (aplicar-lambda-simple fnc lae amb))))
 
 
-(defn aplicar-funcion-primitiva [fnc lae amb]
+(defn aplicar-funcion-primitiva
+  "Aplica una funcion primitiva a una `lae` (lista de argumentos evaluados)."
+  [fnc lae amb]
   (cond
     (= fnc '<)            (fnc-menor lae)
     (= fnc '>)            (fnc-mayor lae)
@@ -217,9 +236,7 @@
     ;
     ;
 
-    :else (generar-mensaje-error :wrong-type-apply fnc)
-  )
-)
+    :else (generar-mensaje-error :wrong-type-apply fnc)))
 
 
 (defn fnc-car
@@ -230,7 +247,6 @@
          (error? ari) ari
          (or (not (seq? arg1)) (empty? arg1)) (generar-mensaje-error :wrong-type-arg1 'car arg1)
          :else (first arg1))))
-
 
 (defn fnc-cdr
   "Devuelve una lista sin su 1ra. posicion."
@@ -327,7 +343,7 @@
   (let [ari (controlar-aridad-fnc lae 1 'null?)]
        (if (error? ari)
            ari
-           (if (= (first lae) ())
+          (if (= (first lae) ())
                (symbol "#t")
                (symbol "#f")))))
 
@@ -545,7 +561,6 @@
      			 :wrong-type-arg2 (list 'Wrong 'type 'in 'arg2 nom-arg)
          ())))))
 
-
 ; FUNCIONES QUE DEBEN SER IMPLEMENTADAS PARA COMPLETAR EL INTERPRETE DE SCHEME (ADEMAS DE COMPLETAR `EVALUAR` Y `APLICAR-FUNCION-PRIMITIVA`):
 
 ; LEER-ENTRADA:
@@ -561,7 +576,7 @@
   ([] 
     (let [input(read-line)]
     (if (= 0 (verificar-parentesis input)) 
-      (println input )
+      input
       (leer-entrada input)
     )
     )
@@ -619,11 +634,11 @@
 (defn actualizar-amb [arg1, arg2, arg3]
   (if (= (error? arg3) true) 
     arg1
-    (if (= (list (symbol (str (symbol ";ERROR: unbound variable: ") arg2))) (buscar arg2 arg1))
-      (concat arg1 (list arg2) (list arg3))
+    (if (= (generar-mensaje-error :unbound-variable arg2) (buscar arg2 arg1))
+        (concat arg1 (list (symbol (lower-case arg2))) (list arg3))
       (reduce
         concat
-        (map (fn[x] (if (= (first x) arg2) (concat (list arg2) (list arg3)) x)) (partition 2 arg1))
+        (map (fn[x] (if (= (first x) (symbol (lower-case arg2))) (concat (list (symbol (lower-case arg2))) (list arg3)) x)) (partition 2 arg1))
       )
     )
   )
@@ -633,41 +648,41 @@
 ; 3
 ; user=> (buscar 'f '(a 1 b 2 c 3 d 4 e 5))
 ; (;ERROR: unbound variable: f)
+
 (defn buscar [arg1, arg2]
   (let [resultado (remove false?
                     (map
                       (fn [x]
-                        (if (= (first x) arg1)
+                        (if (= (first x) (symbol (lower-case arg1)))
                           (second x)
                           false
                         )
                       )   
                       (partition 2 arg2)
+                      )
                     )
-                  )]
+                  ]
     (if (= (first resultado) nil) 
-      (list (symbol (str (symbol ";ERROR: unbound variable: ") arg1)))
+      (generar-mensaje-error :unbound-variable arg1)
       (first resultado)
     )  
   )
 )
 
-; user=> (error? (list (symbol ";ERROR:") 'mal 'hecho))
+
+;;user=> (error? (list (symbol ";ERROR:") 'mal 'hecho))
 ; true
 ; user=> (error? (list 'mal 'hecho))
 ; false
 ; user=> (error? (list (symbol ";WARNING:") 'mal 'hecho))
 ; true
 (defn error? [lista]
-  (if (list? lista)
-    (or 
-    (= (first lista) (symbol ";ERROR:")   )
-    (= (first lista) (symbol ";WARNING:") )
+  (if (not (seq? lista)) false
+    (if  (= (first lista) (symbol ";ERROR:")) true 
+      (if (= (first lista) (symbol ";WARNING:")) true false) 
     )
-    false
   )
 )
-
 
 ; user=> (proteger-bool-en-str "(or #F #f #t #T)")
 ; "(or %F %f %t %T)"
@@ -683,8 +698,23 @@
 ; (and (or #F #f #t #T) #T)
 ; user=> (restaurar-bool (read-string "(and (or %F %f %t %T) %T)") )
 ; (and (or #F #f #t #T) #T)
-(defn restaurar-bool [input]
-  (clojure.string/replace input #"%" "#")
+(defn aplicar-modificacion [x]
+  (cond
+    (= x '%F) (symbol "#F")
+    (= x '%T) (symbol "#T")
+    (= x '%f) (symbol "#f")
+    (= x '%t) (symbol "#t")
+    :else x
+  )
+)
+
+(defn restaurar-bool [arg]
+  (map (fn [x] (
+    cond
+    (symbol? x) (aplicar-modificacion x)
+    (seq? x) (restaurar-bool x)
+    :else x
+  )) arg)
 )
 
 ; user=> (igual? 'if 'IF)
@@ -698,13 +728,12 @@
 ; user=> (igual? 6 "6")
 ; false
 (defn igual? [a, b]
-  (
-  if (and (string? a) (string? b)) 
-    ( = (lower-case a) (lower-case b)) (if (and (symbol? a) (symbol? b)) 
-      ( = (lower-case (str a)) (lower-case (str b))) (if (and (int? a) (int? b)) 
-        ( = a b) false
-      )
-    )
+  (cond
+    (and (symbol? a) (symbol? b)) (= (lower-case a) (lower-case b))
+    (and (number? a) (number? b)) (= a b)
+    (and (string? a) (string? b)) (= a b)
+    (and (seq? a) (seq? b)) (and (igual? (first a) (first b)) (igual? (rest a) (rest b)))
+    :else false
   )
 )
 
@@ -715,13 +744,11 @@
 ; user=> (fnc-append '( (1 2) A (4 5) (6 7)))
 ; (;ERROR: append: Wrong type in arg A)
 (defn verificar-tipo [arg]
-  (reduce *
-    (map
+  (map
     (fn [x] 
-      (if (= x true) 1 0)
+      (if (number? x) 1 0)
     )
-    (map list? arg)
-    )
+    arg
   )
 )
 
@@ -742,10 +769,14 @@
   )
 )
 
+(defn no-lista? [arg] 
+  (not (seq? arg))
+)
+
 (defn fnc-append [arg]
-  (if (= 1 (verificar-tipo arg) ) 
+  (if (= 0 (count (filter no-lista? arg))) 
     (reduce concat arg)
-    (reduce concat '(";ERROR: append: Wrong type in arg") (list (obtener-error arg)))
+    (generar-mensaje-error :wrong-type-arg 'append (obtener-error arg))
   )
 )
 
@@ -771,7 +802,7 @@
   (let [primer-valor (first arg)]
   (map
     (fn [x] 
-      (if (igual? primer-valor x) 1 0)
+      (if (igual? (lower-case (str primer-valor)) (lower-case (str x))) 1 0)
     )
     arg
   )
@@ -779,7 +810,7 @@
 )
 
 (defn fnc-equal? [arg]
-  (if (= (count arg) (reduce + (verificar-igualdad arg))) "#t" "#f" )
+  (if (= (count arg) (reduce + (verificar-igualdad arg))) (symbol "#t") (symbol "#f") )
 )
 
 ; user=> (fnc-read ())
@@ -794,10 +825,11 @@
 ; (;ERROR: Wrong number of args given #<primitive-procedure read>)
 
 (defn fnc-read [arg]
-  (if (= arg ()) (leer-entrada)
+  (if (= (count arg) 0)
+    (read-string (leer-entrada)) 
     (if (= (count arg) 1)
-      (list (symbol ";ERROR: read: Use of I/O ports not implemented"))
-      (list (symbol ";ERROR: Wrong number of args given #<primitive-procedure read>"))
+      (generar-mensaje-error :io-ports-not-implemented 'read)
+      (generar-mensaje-error :wrong-number-args-prim-proc 'read)
     )
   )
 )
@@ -818,55 +850,39 @@
 ; (;ERROR: +: Wrong type in arg2 A)
 ; user=> (fnc-sumar '(3 4 A 6))
 ; (;ERROR: +: Wrong type in arg2 A)
+ (defn obtener-argumento-error [arg]
+   (first 
+   (remove false?
+     (map
+     (fn[a,b]
+       (if (= 1 a) false b)
+     )
+     (map
+       (fn [x] 
+         (if (= true x) 1 0)
+       )
+       (map int? arg)
+     )
+     arg
+     )
+   )
+   )
+ )
+ 
+ (defn obtener-numero-error [arg]
+   (if (= (obtener-argumento-error arg) (first arg))
+     :wrong-type-arg1
+     :wrong-type-arg2
+   )
+ )
+ 
+ (defn fnc-sumar [arg]
+   (if (= (count arg) (reduce + (verificar-tipo arg)))
+     (reduce + arg) 
+     (generar-mensaje-error (obtener-numero-error arg) '+ (obtener-argumento-error arg))
+   )  
+ )
 
-(defn verificar-tipo [arg]
-  (let [primer-valor (first arg)]
-  (map
-    (fn [x] 
-      (if (= (type primer-valor) (type x)) 1 0)
-    )
-    arg
-  )
-  )
-)
-
-(defn obtener-argumento-error [arg]
-  (first 
-  (remove false?
-    (map
-    (fn[a,b]
-      (if (= 1 a) false b)
-    )
-    (map
-      (fn [x] 
-        (if (= true x) 1 0)
-      )
-      (map int? arg)
-    )
-    arg
-    )
-  )
-  )
-)
-
-(defn obtener-numero-error [arg]
-  (if (= (obtener-argumento-error arg) (first arg))
-    1
-    2
-  )
-)
-
-(defn fnc-sumar [arg]
-  (if (= (count arg) (reduce + (verificar-tipo arg)))
-    (reduce + arg) 
-    (symbol (str  (symbol ";ERROR: +: Wrong type in arg") 
-                  (obtener-numero-error arg) 
-                  (symbol " ") 
-                  (obtener-argumento-error arg)
-            )
-    )
-  )  
-)
 
 ; user=> (fnc-restar ())
 ; (;ERROR: -: Wrong number of args given)
@@ -885,58 +901,17 @@
 ; user=> (fnc-restar '(3 4 A 6))
 ; (;ERROR: -: Wrong type in arg2 A)
 
-(defn verificar-tipo [arg]
-  (let [primer-valor (first arg)]
-  (map
-    (fn [x] 
-      (if (= (type primer-valor) (type x)) 1 0)
-    )
-    arg
-  )
-  )
-)
-
-(defn obtener-argumento-error [arg]
-  (first 
-  (remove false?
-    (map
-    (fn[a,b]
-      (if (= 1 a) false b)
-    )
-    (map
-      (fn [x] 
-        (if (= true x) 1 0)
-      )
-      (map int? arg)
-    )
-    arg
-    )
-  )
-  )
-)
-
-(defn obtener-numero-error [arg]
-  (if (= (obtener-argumento-error arg) (first arg))
-    1
-    2
-  )
-)
-
 (defn fnc-restar [arg]
-  (if (= arg '()) '(";ERROR: -: Wrong number of args given")
+  (if (= arg '()) (generar-mensaje-error (obtener-numero-error arg) '- (obtener-argumento-error arg))
     (if (= 1 (count arg)) (- 0 (first arg))
       (if (= (count arg) (reduce + (verificar-tipo arg)))
         (reduce - arg) 
-        (symbol (str  (symbol ";ERROR: -: Wrong type in arg") 
-                (obtener-numero-error arg) 
-                (symbol " ") 
-                (obtener-argumento-error arg)
-                )
-        )   
-      )  
-    )
+        (generar-mensaje-error (obtener-numero-error arg) '- (obtener-argumento-error arg))
+      )   
+    )  
   )
 )
+
 
 ; user=> (fnc-menor ())
 ; #t
@@ -959,62 +934,20 @@
 ; user=> (fnc-menor '(1 2 A 4))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-
-(defn verificar-tipo [arg]
-  (let [primer-valor (first arg)]
-  (map
-    (fn [x] 
-      (if (= (type primer-valor) (type x)) 1 0)
-    )
-    arg
-  )
-  )
-)
-
-(defn obtener-numero-error [arg]
-  (if (= (obtener-argumento-error arg) (first arg))
-    1
-    2
-  )
-)
-
-(defn obtener-argumento-error [arg]
-  (first 
-  (remove false?
-    (map
-    (fn[a,b]
-      (if (= 1 a) false b)
-    )
-    (map
-      (fn [x] 
-        (if (= true x) 1 0)
-      )
-      (map int? arg)
-    )
-    arg
-    )
-  )
-  )
-)
-
 (defn fnc-menor [arg]
-  (if (= arg ()) (symbol "#t") 
+  (if (= (count arg) 0) (symbol "#t") 
     (if (= (count arg) (reduce + (verificar-tipo arg)))
-      (let[lista-ideal (for [x (range (first arg) (+ (first arg) (count arg)))] x)]
-        (if (= arg ()) 
-          (symbol "#t")
-          (if (= arg lista-ideal) (symbol "#t") (symbol "#f"))
+      (let [lista-bool-menores (map (fn [x] (if (< (first x) (second x)) 1 0)) (partition 2 1 arg))]
+            (if (= (count lista-bool-menores) (reduce + lista-bool-menores)) 
+                (symbol "#t")                
+                (symbol "#f")
+            )
         )
-      )
-      (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
-                  (obtener-numero-error arg) 
-                  (symbol " ") 
-                  (obtener-argumento-error arg)
-              )
-      )
+      (generar-mensaje-error (obtener-numero-error arg) '< (obtener-argumento-error arg))
     )
   )
 )
+
 
 ; user=> (fnc-mayor ())
 ; #t
@@ -1031,65 +964,23 @@
 ; user=> (fnc-mayor '(4 2 1 4))
 ; #f
 ; user=> (fnc-mayor '(A 3 2 1))
-; (;ERROR: <: Wrong type in arg1 A)
+; (;ERROR: >: Wrong type in arg1 A)
 ; user=> (fnc-mayor '(3 A 2 1))
-; (;ERROR: <: Wrong type in arg2 A)
+; (;ERROR: >: Wrong type in arg2 A)
 ; user=> (fnc-mayor '(3 2 A 1))
-; (;ERROR: <: Wrong type in arg2 A)
-
-(defn verificar-tipo [arg]
-  (let [primer-valor (first arg)]
-    (if (number? (first arg)) 
-      (map
-        (fn [x] 
-          (if (= (type primer-valor) (type x)) 1 0)
-        )
-        arg
-      )
-      (map (fn [x] 0) arg)
-    )
-  )
-)
-
-(defn obtener-numero-error [arg]
-  (if (= (obtener-argumento-error arg) (first arg))
-    1
-    2
-  )
-)
-
-(defn obtener-argumento-error [arg]
-  (first 
-  (remove false?
-    (map
-    (fn[a,b]
-      (if (= 1 a) false b)
-    )
-    (map
-      (fn [x] 
-        (if (= true x) 1 0)
-      )
-      (map int? arg)
-    )
-    arg
-    )
-  )
-  )
-)
+; (;ERROR: >: Wrong type in arg2 A)
 
 (defn fnc-mayor [arg]
-  (if (= arg ()) (symbol "#t")
+  (if (= 0 (count arg)) (symbol "#t")
     (if (= (count arg) (reduce + (verificar-tipo arg)))
-      (let [lista-ideal (for [x (range (+ (- (first arg) (count arg)) 1) (+ (first arg) 1)) ] x )]
-        (if (= arg ()) (symbol "#t") (if (= arg (reverse lista-ideal)) (symbol "#t") (symbol "#f")))
-      )
-      (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
-                  (obtener-numero-error arg) 
-                  (symbol " ") 
-                  (obtener-argumento-error arg)
-              )
-      )
-      )
+        (let [lista-bool-mayores (map (fn [x] (if (> (first x) (second x)) 1 0)) (partition 2 1 arg))]
+            (if (= (count lista-bool-mayores) (reduce + lista-bool-mayores)) 
+                (symbol "#t")
+                (symbol "#f")
+            )
+        )
+        (generar-mensaje-error (obtener-numero-error arg) '> (obtener-argumento-error arg))
+    )
   )
 )
 
@@ -1114,78 +1005,36 @@
 ; user=> (fnc-mayor-o-igual '(3 2 A 1))
 ; (;ERROR: <: Wrong type in arg2 A)
 
-(defn verificar-tipo [arg]
-  (let [primer-valor (first arg)]
-    (if (number? (first arg)) 
-      (map
-        (fn [x] 
-          (if (= (type primer-valor) (type x)) 1 0)
-        )
-        arg
-      )
-      (map (fn [x] 0) arg)
-    )
-  )
-)
-
-(defn obtener-numero-error [arg]
-  (if (= (obtener-argumento-error arg) (first arg))
-    1
-    2
-  )
-)
-
-(defn obtener-argumento-error [arg]
-  (first 
-  (remove false?
-    (map
-    (fn[a,b]
-      (if (= 1 a) false b)
-    )
-    (map
-      (fn [x] 
-        (if (= true x) 1 0)
-      )
-      (map int? arg)
-    )
-    arg
-    )
-  )
-  )
-)
-
 (defn fnc-mayor-o-igual [arg]
   (if (= arg ()) (symbol "#t")
     (if (= (count arg) 1) (symbol "#t")
       (if (= (count arg) (reduce + (verificar-tipo arg)))
-        (let [lista-valores (map 
-                              (fn[x]
-                                (if (or 
-                                      (= (first x) (second x))
-                                      (> (first x) (second x)) 
-                                    )
-                                  1 
-                                  0
-                                ) 
-                              )
-                              (partition 2 1 arg)
-                            )]
-          (if (= (count lista-valores) (reduce + lista-valores)) 
-            (symbol "#t")
-            (symbol "#f")  
-          )
-        ) 
-        (symbol (str  (symbol ";ERROR: <: Wrong type in arg") 
-                    (obtener-numero-error arg) 
-                    (symbol " ") 
-                    (obtener-argumento-error arg)
-                )
+        (let [lista-bool-mayor-o-igual
+              (map 
+                (fn [x] 
+                  (if (or
+                        (> (first x) (second x))
+                        (= (first x) (second x))
+                      ) 
+                      1 
+                      0
+                  )
+                ) 
+                (partition 2 1 arg)
+              )]
+            (if (= (count lista-bool-mayor-o-igual) (reduce + lista-bool-mayor-o-igual)) 
+                (symbol "#t")
+                (symbol "#f")
+            )
+        )
+        (if (= 0 (.indexOf (map number? arg) false)) 
+          (generar-mensaje-error :wrong-type-arg1 ">" (nth arg (.indexOf (map number? arg) false)))
+          (generar-mensaje-error :wrong-type-arg2 ">" (nth arg (.indexOf (map number? arg) false)))
         )
       )
     )
   )
 )
-
 
 ; user=> (evaluar-escalar 32 '(x 6 y 11 z "hola"))
 ; (32 (x 6 y 11 z "hola"))
@@ -1197,19 +1046,21 @@
 ; ("hola" (x 6 y 11 z "hola"))
 ; user=> (evaluar-escalar 'n '(x 6 y 11 z "hola"))
 ; ((;ERROR: unbound variable: n) (x 6 y 11 z "hola"))
+
 (defn evaluar-escalar [arg1, arg2]
-  (if (string? arg1) 
-    (list (symbol (str \" arg1 \" (symbol " ") arg2))) 
-    (if (not (symbol? arg1)) 
-      (list (symbol (str (symbol (str arg1)) (symbol " ") arg2)))
-      (if (string? (buscar arg1 arg2))
-        (list (symbol (str \" (buscar arg1 arg2) \" (symbol " ") arg2))) 
-        (list (symbol (str (symbol (str (buscar arg1 arg2))) (symbol " ") arg2)))
-      )
+  (if (not (error? (buscar arg1 arg2)))
+    (list (buscar arg1 arg2) arg2)
+    (if (symbol? arg1)
+      (list ((second (first (remove 
+                              (fn[x] 
+                                (not (= arg1 (second x)))
+                              ) 
+                              (partition 2 arg2))))))
+      (list arg1 arg2)
     )
   )
-)  
-
+)
+  
 ; user=> (evaluar-define '(define x 2) '(x 1))
 ; (#<unspecified> (x 2))
 
@@ -1233,35 +1084,30 @@
 
 ; user=> (evaluar-define '(define 2 x) '(x 1))
 ; ((;ERROR: define: bad variable (define 2 x)) (x 1))
-(defn obtener-lambda [arg1, arg2]
-  (if (symbol? (nth arg1 1))
-    (concat (list (nth arg1 1)) (list (nth arg1 2)))    
-    (concat 
-      (actualizar-amb 
-        (actualizar-amb '() (first arg2) (second arg2) )
-          (symbol "f")
-          (concat 
-              (actualizar-amb '() 
-              (symbol "lambda") 
-              (list (second (second arg1))) 
-              )
-              (list (nth arg1 2))   
-          )
-      )
-    )
-  )
-)      
-      
 (defn evaluar-define [arg1, arg2]
-  (if (not (= (count arg1) 3))
-    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: missing or extra expression ") arg1 ))) arg2)
-    (if (or (= (nth arg1 1) ()) (int? (nth arg1 1) ))
-      (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: bad variable ") arg1 ))) arg2)
-      (actualizar-amb '() (symbol "#<unspecified>") (obtener-lambda arg1 arg2))
-    )
-  )  
+  (cond
+    (or (> 3 (count arg1)) (= 4 (count arg1))) 
+      (list (generar-mensaje-error :missing-or-extra "define" arg1) arg2)
+    (symbol? (second arg1)) 
+      (list (symbol "#<unspecified>") (actualizar-amb arg2 (nth arg1 1) (first (evaluar (nth arg1 2) arg2))))
+    (number? (second arg1))
+      (list (generar-mensaje-error :bad-variable "define" arg1) arg2)
+    (seq? (second arg1)) 
+      (if (= 0 (count (second arg1)))
+        (list (generar-mensaje-error :bad-variable "define" arg1) arg2)
+        (if (< 3 (count arg1))
+          (list 
+            (symbol "#<unspecified>") 
+            (actualizar-amb arg2 (first (nth arg1 1)) (cons 'lambda (conj (restaurar-bool (nthrest arg1 2)) (rest (nth arg1 1)))))
+          )
+          (list 
+            (symbol "#<unspecified>")
+            (actualizar-amb arg2 (first (nth arg1 1)) (list 'lambda (rest (nth arg1 1)) (restaurar-bool (nth arg1 2))) )
+          )
+        )
+      )
+  )
 )
-
 
 ; user=> (evaluar-if '(if 1 2) '(n 7))
 ; (2 (n 7))
@@ -1280,78 +1126,27 @@
 ; user=> (evaluar-if '(if 1) '(n 7))
 ; ((;ERROR: if: missing or extra expression (if 1)) (n 7))
 
-(defn buscar-en-ambiente [arg1, arg2]
-  (let [lista-valores (map (fn [x]  (if (= x (symbol "if")) 
-                                      0
-                                      (if (=  (buscar x arg2) 
-                                              (list (symbol (str (symbol ";ERROR: unbound variable: ") x)))
-                                          )
-                                          0
-                                          x
-                                      )
-                                    )
-                            )
-                            arg1
-                        ),
-      total-lista-valores (map (fn [x]  (if (= x (symbol "if")) 
-                                      0
-                                      (if (=  (buscar x arg2) 
-                                              (list (symbol (str (symbol ";ERROR: unbound variable: ") x)))
-                                          )
-                                          0
-                                          1
-                                      )
-                                    )
-                            )
-                            arg1
-                          )]
-    (if (= 0 (reduce + total-lista-valores))
-      (symbol "value-not-found")
-      (if (and (< 1 (reduce + total-lista-valores)) (= (- (count arg1) 1) (reduce + total-lista-valores))) 
-        (symbol "unspecified")
-        (if (and (< 1 (reduce + total-lista-valores)) (> (+ (count arg1) 1) (reduce + total-lista-valores))) 
-          (symbol "two-coincidences")
-          (first (remove (fn [x] (= x 0)) lista-valores))
+
+(defn evaluar-condicion [arg1 arg2]
+  (if (= (first (evaluar arg1 arg2)) (symbol "#f")) false true)
+)
+
+(defn evaluar-if [arg1 arg2]
+  (cond 
+    (not (or (= 3 (count arg1)) (= 4 (count arg1)))) 
+      (list (generar-mensaje-error :missing-or-extra 'if arg1) arg2) 
+    :else
+      (if (evaluar-condicion (second arg1) arg2) 
+        (evaluar (nth arg1 2) arg2)
+        (cond 
+          (= 4 (count arg1)) (evaluar (nth arg1 3) arg2)
+          :else 
+            (list (symbol "#<unspecified>") arg2)
         )
       )
-    )
-  ) 
-)
-
-(defn aplicar-set!? [arg1]
-  (let [lista-set! (map (fn [x] (if (list? x) (if (= (first x) (symbol "set!")) 1 0 ) 0)) arg1)]
-    (if (= 0 (reduce + lista-set!))
-      false
-      true 
-    )
   )
 )
 
-(defn aplicar-set! [arg1]
-  (let [lista-set! (map (fn [x] (if (list? x) (if (= (first x) (symbol "set!")) x 0 ) 0)) arg1)]
-    (first (remove (fn [x] (= x 0)) lista-set!))
-  )
-)
-
-(defn evaluar-if [arg1, arg2]
-  (if (not (> (count arg1) 2)) 
-    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: if: missing or extra expression ") arg1 ))) arg2)    
-    (if (or (= (buscar-en-ambiente arg1 arg2) (symbol "value-not-found")) 
-            (= (buscar-en-ambiente arg1 arg2) (symbol "two-coincidences")))
-        (if (= true (aplicar-set!? arg1))
-          (actualizar-amb '() (symbol "#<unspecified>") (second (evaluar-set! (aplicar-set! arg1) arg2)))    
-          (actualizar-amb '() (nth arg1 (- (count arg1) 1)) arg2)
-        )
-        (if (= (buscar-en-ambiente arg1 arg2) (symbol "unspecified"))
-           (if (= true (aplicar-set!? arg1))
-             (actualizar-amb '() (symbol "#<unspecified>") (second (evaluar-set! (aplicar-set! arg1) arg2)))
-             (actualizar-amb '() (symbol "#<unspecified>") arg2)
-           )
-          (actualizar-amb '() (buscar (buscar-en-ambiente arg1 arg2) arg2) arg2)
-        )
-    )
-  )
-)
 
 ; user=> (evaluar-or (list 'or) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
@@ -1363,44 +1158,45 @@
 ; (5 (#f #f #t #t))
 ; user=> (evaluar-or (list 'or (symbol "#f")) (list (symbol "#f") (symbol "#f") (symbol "#t") (symbol "#t")))
 ; (#f (#f #f #t #t))
-(defn obtener-resultado-or [arg]
-  (let [lista-valores (map (fn [x] (if (and (not (= x (symbol "#f"))) (not (= x (symbol "or")))) x 0 )) arg ),
-        total-lista-valores (map (fn [x] (if (and (not (= x (symbol "#f"))) (not (= x (symbol "or")))) 1 0 )) arg )]
-    (if (= 0 (reduce + total-lista-valores))
-      (symbol "#f")
-      (first (remove (fn [x] (= x 0)) lista-valores))
-    )
-  )
-)
 
 (defn evaluar-or [arg1, arg2]
-  (if (= (count arg1) 1) 
-    (actualizar-amb '() (symbol "#f") arg2)
-    (actualizar-amb '() (obtener-resultado-or arg1) arg2)
+  (cond 
+    (=  (count arg1) 1)     (actualizar-amb '() (symbol "#f") arg2)
+    (not (= (symbol "#f") (first (evaluar (second arg1) arg2)))) (list (first (evaluar (second arg1) arg2)) arg2)
+    :else
+      (evaluar-or (concat (list 'or) (rest (rest arg1))) arg2)
   )
 )
 
 ; user=> (evaluar-set! '(set! x 1) '(x 0))
 ; (#<unspecified> (x 1))
+
 ; (evaluar-set! '(set! x 1) '())
 ; ((;ERROR: unbound variable: x) ())
+
 ; user=> (evaluar-set! '(set! x) '(x 0))
 ; ((;ERROR: set!: missing or extra expression (set! x)) (x 0))
+
 ; user=> (evaluar-set! '(set! x 1 2) '(x 0))
 ; ((;ERROR: set!: missing or extra expression (set! x 1 2)) (x 0))
+
 ; user=> (evaluar-set! '(set! 1 2) '(x 0))
 ; ((;ERROR: set!: bad variable 1) (x 0))
 (defn evaluar-set! [arg1, arg2]
-  (if (not (symbol? (second arg1)))
-    (actualizar-amb '() (list (symbol (str (symbol ";ERROR: define: bad variable ") arg1 ))) arg2)
-    (if (= (buscar (second arg1) arg2) (list (symbol (str (symbol ";ERROR: unbound variable: ") (second arg1)))))
+  (if (number? (second arg1))
+    (actualizar-amb '() (generar-mensaje-error :bad-variable 'set! (second arg1)) arg2)
+    (if (error? (buscar (second arg1) arg2))
       (actualizar-amb '() (buscar (second arg1) arg2) arg2)
       (if (not (= (count arg1) 3)) 
-        (actualizar-amb '() (list (symbol (str (symbol ";ERROR: set!: missing or extra expression ") arg1 ))) arg2)
-        (actualizar-amb '() (symbol "#<unspecified>") (actualizar-amb arg2 (second arg1) (nth arg1 2)))
+        (actualizar-amb '() (generar-mensaje-error :missing-or-extra 'set! arg1) arg2)
+        (actualizar-amb '() (symbol "#<unspecified>") (actualizar-amb arg2 (second arg1) (first (evaluar (nth arg1 2) arg2))))
       )
     )
   )
 )
 
-; Al terminar de cargar el archivo en el REPL de Clojure, se debe devolver true.
+(defn -main
+  "Interprete de Scheme"
+  [& args]
+  (repl)
+)

@@ -1,4 +1,4 @@
-# interprete
+# interprete-scheme
 
 FIXME: description
 
@@ -10,7 +10,7 @@ Download from http://example.com/FIXME.
 
 FIXME: explanation
 
-    $ java -jar interprete-0.1.0-standalone.jar [args]
+    $ java -jar interprete-scheme-0.1.0-standalone.jar [args]
 
 ## Options
 
