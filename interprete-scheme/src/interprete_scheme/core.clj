@@ -208,20 +208,22 @@
     ;
     ;
     (igual? fnc 'append)  (fnc-append lae)
-    (igual? fnc 'car)  (fnc-car lae)
-    (igual? fnc 'cdr)  (fnc-cdr lae)
-    (igual? fnc 'env)  (fnc-env lae amb)
-    (igual? fnc 'not)  (fnc-not lae)
-    (igual? fnc 'cons)  (fnc-cons lae)
-    (igual? fnc 'list)  (fnc-list lae)
-    (igual? fnc 'list?)  (fnc-list? lae)
-    (igual? fnc 'read)  (fnc-read lae)
-    (igual? fnc 'null?)  (fnc-null? lae)
+    (igual? fnc 'car)     (fnc-car lae)
+    (igual? fnc 'cdr)     (fnc-cdr lae)
+    (igual? fnc 'env)     (fnc-env lae amb)
+    (igual? fnc 'not)     (fnc-not lae)
+    (igual? fnc 'cons)    (fnc-cons lae)
+    (igual? fnc 'list)    (fnc-list lae)
+    (igual? fnc 'list?)   (fnc-list? lae)
+    (igual? fnc 'read)    (fnc-read lae)
+    (igual? fnc 'null?)   (fnc-null? lae)
     (igual? fnc 'equal?)  (fnc-equal? lae)
     (igual? fnc 'length)  (fnc-length lae)
-    (igual? fnc 'display)  (fnc-display lae)
-    (igual? fnc 'newline)  (fnc-newline lae)
-    (igual? fnc 'reverse)  (fnc-reverse lae)
+    (igual? fnc 'display) (fnc-display lae)
+    (igual? fnc 'newline) (fnc-newline lae)
+    (igual? fnc 'reverse) (fnc-reverse lae)
+    (igual? fnc 'max)     (fnc-max lae)
+
     ;
     ;
     ; Si la funcion primitiva esta identificada mediante una palabra reservada, debe ignorarse la distincion entre mayusculas y minusculas 
@@ -842,31 +844,32 @@
 ; (;ERROR: +: Wrong type in arg2 A)
 ; user=> (fnc-sumar '(3 4 A 6))
 ; (;ERROR: +: Wrong type in arg2 A)
- (defn obtener-argumento-error [arg]
-   (first 
-   (remove false?
-     (map
-     (fn[a,b]
-       (if (= 1 a) false b)
-     )
-     (map
-       (fn [x] 
-         (if (= true x) 1 0)
-       )
-       (map int? arg)
-     )
-     arg
-     )
-   )
-   )
- )
- 
- (defn obtener-numero-error [arg]
-   (if (= (obtener-argumento-error arg) (first arg))
-     :wrong-type-arg1
-     :wrong-type-arg2
-   )
- )
+
+(defn obtener-argumento-error [arg]
+  (first 
+  (remove false?
+    (map
+    (fn[a,b]
+      (if (= 1 a) false b)
+    )
+    (map
+      (fn [x] 
+        (if (= true x) 1 0)
+      )
+      (map number? arg)
+    )
+    arg
+    )
+  )
+  )
+)
+
+(defn obtener-numero-error [arg]
+  (if (= (obtener-argumento-error arg) (first arg))
+    :wrong-type-arg1
+    :wrong-type-arg2
+  )
+)
  
  (defn fnc-sumar [arg]
    (if (= (count arg) (reduce + (verificar-tipo arg)))
@@ -1186,6 +1189,42 @@
     )
   )
 )
+
+; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
+
+(defn obtener-maximo [arg]
+  (let [lista-maximos 
+        (map 
+          (fn [x] (if (> (first x) (second x)) (first x) (second x)))
+          (partition 2 1 arg)
+        )
+       ]
+    (if (= 1 (count lista-maximos))
+      lista-maximos
+      (obtener-maximo lista-maximos)
+    )
+  )
+)
+
+(defn fnc-max [arg]
+  (if (= 0 (count arg)) (generar-mensaje-error :wrong-number-args-prim-proc 'max)
+    (if (= (count arg) (reduce + (verificar-tipo arg)))
+        (first (obtener-maximo arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'max (obtener-argumento-error arg))
+    )
+  )
+)
+
+(defn fnc-sen [arg]
+  (if (not (= 1 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'max)
+    (if (number? (first arg))
+        (Math/sin (first arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'sen (obtener-argumento-error arg))
+    )
+  )
+)
+
+; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
 
 (defn -main
   "Interprete de Scheme"
