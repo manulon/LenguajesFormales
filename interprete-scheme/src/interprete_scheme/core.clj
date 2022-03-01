@@ -1224,6 +1224,17 @@
   )
 )
 
+(defn fnc-pow [arg]
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'max)
+    (if (and (number? (first arg)) (number? (second arg)))
+        (Math/pow (first arg) (second arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'pow (obtener-argumento-error arg))
+    )
+  )
+)
+
+;; hacerlo ahora de la otra manera
+
 ; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
 
 (defn -main
