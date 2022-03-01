@@ -78,14 +78,6 @@
 (declare evaluar-clausulas-de-cond)
 (declare evaluar-secuencia-en-cond)
 
-(declare verificar-parentesis-wrapper)
-(declare efectuar-actualizacion-amb)
-(declare equals)
-(declare menor)
-(declare mayor)
-(declare crear-lambda)
-(declare crear-lambda2)
-(declare modificar-bool)
 
 ; REPL (read–eval–print loop).
 ; Aridad 0: Muestra mensaje de bienvenida y se llama recursivamente con el ambiente inicial.
