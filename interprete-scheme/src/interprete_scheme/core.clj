@@ -1276,6 +1276,24 @@
   )
 )
 
+(defn fnc-resto [arg]
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'resto)
+    (if (and (number? (first arg)) (number? (second arg)))
+        (rem (first arg) (second arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'resto (obtener-argumento-error arg))
+    )
+  )
+)
+
+(defn fnc-modulo [arg]
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'modulo)
+    (if (and (number? (first arg)) (number? (second arg)))
+        (mod (first arg) (second arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'modulo (obtener-argumento-error arg))
+    )
+  )
+)
+
 ; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
 
 (defn -main
