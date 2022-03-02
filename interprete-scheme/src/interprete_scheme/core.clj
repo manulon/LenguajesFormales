@@ -1234,12 +1234,19 @@
 )
 
 (defn obtener-multiplicacion [arg, multiplicando]
-  (let  [iteraciones-restantes (- (second arg) 1),
+  (let  [iteraciones-restantes (- (abs (second arg)) 1),
         suma-parcial (first arg)
         ]
-    (if (= 0 iteraciones-restantes)
-      suma-parcial
-      (obtener-multiplicacion (list (+ suma-parcial multiplicando) iteraciones-restantes) multiplicando)
+    (if (and (pos? (first arg)) (pos? (second arg))) (and (neg? (first arg)) (neg? (second arg))))
+      ;; resultado positivo
+      (if (= 0 iteraciones-restantes)
+        suma-parcial
+        (obtener-multiplicacion (list (+ suma-parcial multiplicando) iteraciones-restantes) multiplicando)
+      )
+      (if (= 0 iteraciones-restantes)
+        (neg suma-parcial)
+        (obtener-multiplicacion (list (+ suma-parcial multiplicando) iteraciones-restantes) multiplicando)
+      )
     )
   )
 )
@@ -1291,6 +1298,20 @@
         (mod (first arg) (second arg))
         (generar-mensaje-error (obtener-numero-error arg) 'modulo (obtener-argumento-error arg))
     )
+  )
+)
+
+(defn abs [x]
+  (cond (> x 0) x
+        (= x 0) 0 
+        (< x 0) (- x)
+  )
+)
+
+(defn neg [x]
+  (cond (> x 0) (- x)
+        (= x 0) 0 
+        (< x 0) x
   )
 )
 
