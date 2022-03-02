@@ -1233,7 +1233,28 @@
   )
 )
 
-;; hacerlo ahora de la otra manera
+(defn obtener-multiplicacion [arg, multiplicando]
+  (let  [iteraciones-restantes (- (second arg) 1),
+        suma-parcial (first arg)
+        ]
+    (if (= 0 iteraciones-restantes)
+      suma-parcial
+      (obtener-multiplicacion (list (+ suma-parcial multiplicando) iteraciones-restantes) multiplicando)
+    )
+  )
+)
+
+(defn fnc-multiplicacion [arg]
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'multiplicacion)
+    (if (or (= 0 (second arg)) (= 0 (first arg)))
+      0
+        (if (= (count arg) (reduce + (verificar-tipo arg)))
+            (obtener-multiplicacion arg (first arg))
+            (generar-mensaje-error (obtener-numero-error arg) 'multiplicacion (obtener-argumento-error arg))
+        )
+    )
+  )
+)
 
 ; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
 
