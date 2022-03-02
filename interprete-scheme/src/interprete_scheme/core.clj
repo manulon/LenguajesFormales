@@ -1225,7 +1225,7 @@
 )
 
 (defn fnc-pow [arg]
-  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'max)
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'pow)
     (if (and (number? (first arg)) (number? (second arg)))
         (Math/pow (first arg) (second arg))
         (generar-mensaje-error (obtener-numero-error arg) 'pow (obtener-argumento-error arg))
@@ -1252,6 +1252,26 @@
             (obtener-multiplicacion arg (first arg))
             (generar-mensaje-error (obtener-numero-error arg) 'multiplicacion (obtener-argumento-error arg))
         )
+    )
+  )
+)
+
+(defn obtener-potencia [arg, base]
+  (let  [iteraciones-restantes (- (second arg) 1),
+        suma-parcial (first arg)
+        ]
+    (if (= 0 iteraciones-restantes)
+      suma-parcial
+      (obtener-potencia (list (fnc-multiplicacion (list suma-parcial base)) iteraciones-restantes) base)
+    )
+  )
+)
+
+(defn fnc-pow-rec [arg]
+  (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'pow)
+    (if (and (number? (first arg)) (number? (second arg)))
+        (obtener-potencia arg (first arg))
+        (generar-mensaje-error (obtener-numero-error arg) 'pow (obtener-argumento-error arg))
     )
   )
 )
