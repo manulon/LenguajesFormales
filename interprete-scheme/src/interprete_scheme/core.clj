@@ -1192,6 +1192,7 @@
 
 ; ////////////////////    PRACTICA PARA EL FINAL    ////////////////////
 
+;;;;          MAXIMO          ;;;;
 (defn obtener-maximo [arg]
   (let [lista-maximos 
         (map 
@@ -1215,6 +1216,7 @@
   )
 )
 
+;;;;          SENO          ;;;;
 (defn fnc-sen [arg]
   (if (not (= 1 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'max)
     (if (number? (first arg))
@@ -1224,6 +1226,7 @@
   )
 )
 
+;;;;          POTENCIA          ;;;;
 (defn fnc-pow [arg]
   (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'pow)
     (if (and (number? (first arg)) (number? (second arg)))
@@ -1233,12 +1236,12 @@
   )
 )
 
+;;;;          MULTIPLICACION          ;;;;
 (defn obtener-multiplicacion [arg, multiplicando]
   (let  [iteraciones-restantes (- (abs (second arg)) 1),
         suma-parcial (first arg)
         ]
     (if (and (pos? (first arg)) (pos? (second arg))) (and (neg? (first arg)) (neg? (second arg))))
-      ;; resultado positivo
       (if (= 0 iteraciones-restantes)
         suma-parcial
         (obtener-multiplicacion (list (+ suma-parcial multiplicando) iteraciones-restantes) multiplicando)
@@ -1263,6 +1266,7 @@
   )
 )
 
+;;;;          POTENCIA RECURSIVA          ;;;;
 (defn obtener-potencia [arg, base]
   (let  [iteraciones-restantes (- (second arg) 1),
         suma-parcial (first arg)
@@ -1283,6 +1287,7 @@
   )
 )
 
+;;;;          RESTO          ;;;;
 (defn fnc-resto [arg]
   (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'resto)
     (if (and (number? (first arg)) (number? (second arg)))
@@ -1292,6 +1297,7 @@
   )
 )
 
+;;;;          MODULO          ;;;;
 (defn fnc-modulo [arg]
   (if (not (= 2 (count arg))) (generar-mensaje-error :wrong-number-args-prim-proc 'modulo)
     (if (and (number? (first arg)) (number? (second arg)))
@@ -1301,6 +1307,7 @@
   )
 )
 
+;;;;          VALOR ABSOLUTO          ;;;;
 (defn abs [x]
   (cond (> x 0) x
         (= x 0) 0 
@@ -1308,6 +1315,7 @@
   )
 )
 
+;;;;          NUMERO A NEGATIVO          ;;;;
 (defn neg [x]
   (cond (> x 0) (- x)
         (= x 0) 0 
